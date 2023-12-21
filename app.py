@@ -200,8 +200,9 @@ def stripe_webhook():
                 'summary': 'Payment Successful Event',
                 'description': 'This event is created upon a successful payment.'
             }
-            create_event(create_event_data['start_time'], create_event_data['end_time'], 
+            event_link = create_event(create_event_data['start_time'], create_event_data['end_time'], 
                          create_event_data['summary'], create_event_data['description'])
+            calendar_link = event_link.get('htmlLink')
             
             # Step 2: Send Email Notification
             recipients = [email for email in [customer_email, listing_email] if email]
@@ -227,7 +228,7 @@ def stripe_webhook():
                 template_data = {
                     'name': str(user_name),
                     'price': str(unit_amount),
-                    'hyperlink': 'https://www.google.com/'
+                    'hyperlink': str(calendar_link)
                     }
 
                 html_content = html_content.format(**template_data)
