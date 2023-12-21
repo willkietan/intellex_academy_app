@@ -219,9 +219,6 @@ def stripe_webhook():
                 #html_content = html_content.replace('{{price}}', '{price}')
                 #html_content = html_content.replace('{{hyperlink}}', '{hyperlink}')
 
-                # Replace placeholders with actual data
-                html_content = html_content.format(**template_data)
-
                 template_data = {
                     'name': 'John Doe',
                     }
