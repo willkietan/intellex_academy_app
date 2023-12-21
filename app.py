@@ -3,6 +3,7 @@ from google_auth_oauthlib.flow import InstalledAppFlow
 from google.auth.transport.requests import Request
 from google.oauth2.credentials import Credentials
 from googleapiclient.discovery import build
+from email.mime.multipart import MIMEMultipart  # Add this line
 from email.mime.text import MIMEText
 import base64
 import datetime
@@ -10,7 +11,7 @@ import os
 import json
 from flask_cors import CORS
 import stripe
-from flask import request
+
 
 app = Flask(__name__)
 
