@@ -1,0 +1,9 @@
+Flask==2.0.1
+werkzeug==2.0.1
+google-auth
+google-auth-oauthlib
+google-auth-httplib2
+google-api-python-client
+email-validator
+flask-cors
+stripe
