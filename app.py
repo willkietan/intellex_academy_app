@@ -143,7 +143,7 @@ def create_checkout_session():
             payment_method_types=['card'],
             line_items=[{
                 'price_data': {
-                    'currency': 'usd',
+                    'currency': 'aud',
                     'product_data': {
                         'name': data.get('name'),  # Product name
                     },
@@ -157,6 +157,8 @@ def create_checkout_session():
             metadata={
                 'customer_email': data.get('customer_email'),  # Email of the current user
                 'listing_email': data.get('listing_email')     # Email associated with the listing
+                'mentor_name': data.get('mentor_name')     # mentor_name associated with the listing
+                'user_name': data.get('user_name')     # user_name associated with the listing
             }
         )
         # Return relevant information from the session
@@ -236,6 +238,7 @@ def stripe_webhook():
         return 'Invalid signature', 400
     except Exception as e:
         return str(e), 500
+    
 if __name__ == '__main__':
     port = int(os.environ.get('PORT', 5000))  # Default to 5000 if PORT not set
     app.run(host='0.0.0.0', port=port, debug=False)
