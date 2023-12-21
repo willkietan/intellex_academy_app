@@ -135,6 +135,7 @@ def handle_send_email():
 # Set your secret key. Remember to switch to your live secret key in production.
 # See your keys here: https://dashboard.stripe.com/account/apikeys
 stripe.api_key = os.getenv('STRIPE_SECRET_KEY')
+
 @app.route('/create-checkout-session', methods=['POST'])
 def create_checkout_session():
     try:
@@ -156,8 +157,8 @@ def create_checkout_session():
             cancel_url='https://intellex-academy.vercel.app/cancel',
             metadata={
                 'customer_email': data.get('customer_email'),  # Email of the current user
-                'listing_email': data.get('listing_email')     # Email associated with the listing
-                'mentor_name': data.get('mentor_name')     # mentor_name associated with the listing
+                'listing_email': data.get('listing_email'),     # Email associated with the listing
+                'mentor_name': data.get('mentor_name'),     # mentor_name associated with the listing
                 'user_name': data.get('user_name')     # user_name associated with the listing
             }
         )
@@ -171,6 +172,7 @@ def create_checkout_session():
     except Exception as e:
         print(e)  # Print the error to the server's log
         return jsonify({'error': str(e)}), 403
+    
 @app.route('/webhook', methods=['POST'])
 def stripe_webhook():
     payload = request.get_data(as_text=True)
