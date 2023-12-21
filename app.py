@@ -256,11 +256,8 @@ def stripe_webhook():
                     html_content = file.read()
 
                 for recipient in recipients:
-                    template_data = {'name': 'Duncan',
-                                     'price': '100',
-                                     'hyperlink': '',
-                                     }  
-                    send_email(service, "me", subject, recipient, template_path, template_data)
+
+                    send_email(service, "me", subject, recipient, template_path)
 
         return jsonify({'status': 'success'}), 200
 
