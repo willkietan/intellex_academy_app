@@ -11,13 +11,9 @@ import os
 import json
 from flask_cors import CORS
 import stripe
-
-
 app = Flask(__name__)
 # Enable CORS for all routes and origins
-
 CORS(app)
-
 # Google Calendar Functions
 SCOPES_CALENDAR = ['https://www.googleapis.com/auth/calendar.events']
 def get_calendar_service():
@@ -85,28 +81,23 @@ def send_email(service, user_id, subject, recipient, html_content):
         message['to'] = recipient
         message['from'] = user_id
         message['subject'] = subject
-
         # Attach both plain text and HTML parts
         part1 = MIMEText("This is an HTML email. Please use an email client that supports HTML to view it.", 'plain')
         part2 = MIMEText(html_content, 'html')
         message.attach(part1)
         message.attach(part2)
-
         # Encode and send the message
         raw_message = {'raw': base64.urlsafe_b64encode(message.as_bytes()).decode()}
         sent_message = service.users().messages().send(userId=user_id, body=raw_message).execute()
         return sent_message
-
     except Exception as e:
         print('An error occurred: %s' % e)
         return None
-
     
 # Flask Routes
 @app.route('/')
 def index():
     return "Welcome to the Google Calendar and Gmail Integration!"
-
 @app.route('/create_event', methods=['POST'])
 def create_calendar_event():
     data = request.json
@@ -121,12 +112,29 @@ def create_calendar_event():
         return jsonify({'message': 'Event created successfully', 'event_link': event.get('htmlLink'), 'meet_link': event.get('hangoutLink')})
     except Exception as e:
         return jsonify({'error': str(e)}), 500
-    
-
+@app.route('/send_email', methods=['POST'])
+def handle_send_email():
+    data = request.json
+    sender = data.get('sender')
+    recipient = data.get('to')
+    subject = data.get('subject')
+    # Construct the path to the template
+    template_path = os.path.join(app.root_path, 'template.html')
+    if not all([sender, recipient, subject]):
+        return jsonify({'error': 'Required email fields are missing'}), 400
+    try:
+        service = gmail_authenticate()
+        # Read HTML content from file
+        with open(template_path, 'r') as file:
+            html_content = file.read()
+        # Use the updated send_message function
+        send_email(service, "me", subject, recipient, html_content)
+        return jsonify({'message': 'Email sent successfully'})
+    except Exception as e:
+        return jsonify({'error': str(e)}), 500
 # Set your secret key. Remember to switch to your live secret key in production.
 # See your keys here: https://dashboard.stripe.com/account/apikeys
 stripe.api_key = os.getenv('STRIPE_SECRET_KEY')
-
 @app.route('/create-checkout-session', methods=['POST'])
 def create_checkout_session():
     try:
@@ -161,7 +169,6 @@ def create_checkout_session():
     except Exception as e:
         print(e)  # Print the error to the server's log
         return jsonify({'error': str(e)}), 403
-    
 @app.route('/webhook', methods=['POST'])
 def stripe_webhook():
     payload = request.get_data(as_text=True)
@@ -178,11 +185,6 @@ def stripe_webhook():
             # Retrieve email addresses from session metadata
             customer_email = session.get('metadata', {}).get('customer_email', '')
             listing_email = session.get('metadata', {}).get('listing_email', '')
-
-            amount = session.get('metadata', {}).get('amount', '')
-            user_name = session.get('metadata', {}).get('user_name', '')
-            mentor_name = session.get('metadata', {}).get('mentor_name', '')
-
             # Step 1: Create Calendar Event
             create_event_data = {
                 'start_time': '2024-01-01T09:00:00', # Replace with actual data
@@ -190,16 +192,14 @@ def stripe_webhook():
                 'summary': 'Payment Successful Event',
                 'description': 'This event is created upon a successful payment.'
             }
-            event = create_event(create_event_data['start_time'], create_event_data['end_time'], 
+            create_event(create_event_data['start_time'], create_event_data['end_time'], 
                          create_event_data['summary'], create_event_data['description'])
-            
-            calendar_link = event.get('htmlLink')
             
             # Step 2: Send Email Notification
             recipients = [email for email in [customer_email, listing_email] if email]
             if recipients:
                 sender = 'your-email@example.com'  # Replace with your email
-                subject = 'You have booked an Intellex Session'
+                subject = 'Payment Successful'
                 # Construct the path to the template
                 template_path = os.path.join(os.path.dirname(__file__), 'template.html')
                 service = gmail_authenticate()
@@ -211,27 +211,24 @@ def stripe_webhook():
                 html_content = html_content.replace('{', '{{').replace('}', '}}')
 
                 # Unescape the actual placeholders
-                html_content = html_content.replace('{{name}}', '{user_name}')
-                html_content = html_content.replace('{{price}}', '{amount}')
+                html_content = html_content.replace('{{name}}', '{name}')
+                #html_content = html_content.replace('{{price}}', '{price}')
+                #html_content = html_content.replace('{{hyperlink}}', '{hyperlink}')
+                html_content = html_content.replace('{{price}}', '{price}')
                 html_content = html_content.replace('{{hyperlink}}', '{hyperlink}')
-                html_content = html_content.replace('{{mentor_name}}', '{mentor_name}')
 
                 template_data = {
-                    'user_name': 'John Doe',  # From session metadata
-                    'price': 'John Doe',  # From session metadata
-                    'hyperlink': 'John Doe',  # Google Calendar event link
-                    'mentor_name': 'John Doe'  # Google Calendar event link
+                    'name': 'John Doe',
+                    'price': '100',
+                    'hyperlink': 'https://www.google.com/'
                     }
-                
+
                 html_content = html_content.format(**template_data)
                 html_content = html_content.replace('{{', '{').replace('}}', '}')
-
             for recipient in recipients:
                 # No need to pass template_path here
                 send_email(service, "me", subject, recipient, html_content)
-
         return jsonify({'status': 'success'}), 200
-
     except ValueError as e:
         # Invalid payload
         return 'Invalid payload', 400
@@ -240,8 +237,6 @@ def stripe_webhook():
         return 'Invalid signature', 400
     except Exception as e:
         return str(e), 500
-    
-
 if __name__ == '__main__':
     port = int(os.environ.get('PORT', 5000))  # Default to 5000 if PORT not set
     app.run(host='0.0.0.0', port=port, debug=False)
