@@ -11,12 +11,15 @@ import os
 import json
 from flask_cors import CORS
 import stripe
-
+import logging
 
 app = Flask(__name__)
 
 # Enable CORS for all routes and origins
 CORS(app)
+
+# Configure Logging
+logging.basicConfig(level=logging.DEBUG)
 
 # Google Calendar Functions
 SCOPES_CALENDAR = ['https://www.googleapis.com/auth/calendar.events']
@@ -89,33 +92,37 @@ def send_message(service, user_id, message):
         print('An error occurred: %s' % e)
         return None
 
-def send_email(service, user_id, subject, recipient, template_path, template_data=None):
+def send_email(service, user_id, subject, recipient, template_path, template_data):
     try:
+        # Read HTML content from file and replace placeholders
         with open(template_path, 'r') as file:
             html_content = file.read()
 
         # Replace placeholders with actual data
-        if template_data:
-            html_content = html_content.format(**template_data)
+        html_content = html_content.format(**template_data)
 
+        # Create email message with HTML content
         message = MIMEMultipart('alternative')
         message['to'] = recipient
         message['from'] = user_id
         message['subject'] = subject
 
+        # Attach both plain text and HTML parts
         part1 = MIMEText("This is an HTML email. Please use an email client that supports HTML to view it.", 'plain')
         part2 = MIMEText(html_content, 'html')
-
         message.attach(part1)
         message.attach(part2)
 
+        # Send the email
         raw_message = {'raw': base64.urlsafe_b64encode(message.as_bytes()).decode()}
         sent_message = service.users().messages().send(userId=user_id, body=raw_message).execute()
-
+        logging.info(f'Email sent successfully: Message Id {sent_message["id"]}')
         return sent_message
+
     except Exception as e:
-        print('An error occurred: %s' % e)
-        return None
+        logging.error(f'An error occurred while sending email: {e}')
+        raise  # Re-raise the exception for handling in calling function
+
 
 # Flask Routes
 @app.route('/')
@@ -255,10 +262,16 @@ def stripe_webhook():
                 with open(template_path, 'r') as file:
                     html_content = file.read()
 
-                for recipient in recipients:
+        # Send email to each recipient
+        for recipient in recipients:
+            template_data = {'name': 'Duncan', 'price': '100', 'hyperlink': 'https://www.example.com'}
+            send_email(service, "me", subject, recipient, template_path, template_data)
 
-                    send_email(service, "me", subject, recipient, template_path)
+        return jsonify({'status': 'success'}), 200
 
+    except Exception as e:
+        logging.error(f'Webhook handling error: {e}')
+        return jsonify({'error': str(e)}), 500
         return jsonify({'status': 'success'}), 200
 
     except ValueError as e:
