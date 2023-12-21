@@ -185,6 +185,7 @@ def stripe_webhook():
             # Retrieve email addresses from session metadata
             customer_email = session.get('metadata', {}).get('customer_email', '')
             listing_email = session.get('metadata', {}).get('listing_email', '')
+
             # Step 1: Create Calendar Event
             create_event_data = {
                 'start_time': '2024-01-01T09:00:00', # Replace with actual data
@@ -212,13 +213,11 @@ def stripe_webhook():
 
                 # Unescape the actual placeholders
                 html_content = html_content.replace('{{name}}', '{name}')
-                #html_content = html_content.replace('{{price}}', '{price}')
-                #html_content = html_content.replace('{{hyperlink}}', '{hyperlink}')
                 html_content = html_content.replace('{{price}}', '{price}')
                 html_content = html_content.replace('{{hyperlink}}', '{hyperlink}')
 
                 template_data = {
-                    'name': 'John Doe',
+                    'name': str(listing_email),
                     'price': '100',
                     'hyperlink': 'https://www.google.com/'
                     }
