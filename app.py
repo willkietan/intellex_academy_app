@@ -228,7 +228,6 @@ def stripe_webhook():
             listing_email = session.get('metadata', {}).get('listing_email', '')
 
             # Step 1: Create Calendar Event
-            # You need to provide the required data like start_time, end_time, summary, description
             create_event_data = {
                 'start_time': '2024-01-01T09:00:00', # Replace with actual data
                 'end_time': '2024-01-01T10:00:00',   # Replace with actual data
@@ -238,24 +237,38 @@ def stripe_webhook():
             create_event(create_event_data['start_time'], create_event_data['end_time'], 
                          create_event_data['summary'], create_event_data['description'])
             
-            # Define recipient emails
+            # Step 2: Send Email Notification
             recipients = [email for email in [customer_email, listing_email] if email]
 
             if recipients:
-                # Send Email Notification
                 sender = 'your-email@example.com'  # Replace with your email
                 subject = 'Payment Successful'
-                message_text = 'Payment successful for the event.'
+
+                # Construct the path to the template
+                template_path = os.path.join(os.path.dirname(__file__), 'template.html')
+
                 service = gmail_authenticate()
 
-                for recipient in recipients:
-                    message = create_message(sender, recipient, subject, message_text)
-                    send_message(service, "me", message)
+                # Read HTML content from file
+                with open(template_path, 'r') as file:
+                    html_content = file.read()
 
-            # Perform actions after checkout session is completed
+                for recipient in recipients:
+                    # Use the updated send_email function
+                    send_email(service, "me", subject, recipient, html_content)
 
 
         return jsonify({'status': 'success'}), 200
+
+    except ValueError as e:
+        # Invalid payload
+        return 'Invalid payload', 400
+    except stripe.error.SignatureVerificationError as e:
+        # Invalid signature
+        return 'Invalid signature', 400
+    except Exception as e:
+        return str(e), 500
+
 
     except ValueError as e:
         # Invalid payload
