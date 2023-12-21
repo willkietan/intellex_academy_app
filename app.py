@@ -88,6 +88,33 @@ def send_message(service, user_id, message):
         print('An error occurred: %s' % e)
         return None
 
+def send_email(service, user_id, subject, recipient, html_content):
+    try:
+        # Create a MIMEMultipart message
+        message = MIMEMultipart('alternative')
+        message['to'] = recipient
+        message['from'] = user_id
+        message['subject'] = subject
+
+        # Create the plain-text version of the message
+        text = "This is an HTML email. Please use an email client that supports HTML to view it."
+        part1 = MIMEText(text, 'plain')
+        part2 = MIMEText(html_content, 'html')
+
+        # Attach parts into message container
+        message.attach(part1)
+        message.attach(part2)
+
+        # Encode and send the message
+        raw_message = {'raw': base64.urlsafe_b64encode(message.as_bytes()).decode()}
+        sent_message = service.users().messages().send(userId=user_id, body=raw_message).execute()
+
+        print('Message Id: %s' % sent_message['id'])
+        return sent_message
+    except Exception as e:
+        print('An error occurred: %s' % e)
+        return None
+
 # Flask Routes
 @app.route('/')
 def index():
@@ -110,15 +137,16 @@ def create_calendar_event():
     except Exception as e:
         return jsonify({'error': str(e)}), 500
 
+
 @app.route('/send_email', methods=['POST'])
-def send_email():
+def handle_send_email():
     data = request.json
     sender = data.get('sender')
     recipient = data.get('to')
     subject = data.get('subject')
 
     # Construct the path to the template
-    template_path = os.path.join(os.path.dirname(__file__), 'template.html')
+    template_path = os.path.join(app.root_path, 'template.html')
 
     if not all([sender, recipient, subject]):
         return jsonify({'error': 'Required email fields are missing'}), 400
@@ -131,7 +159,7 @@ def send_email():
             html_content = file.read()
 
         # Use the updated send_message function
-        send_message(service, "me", subject, recipient, html_content)
+        send_email(service, "me", subject, recipient, html_content)
 
         return jsonify({'message': 'Email sent successfully'})
     except Exception as e:
