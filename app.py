@@ -73,27 +73,31 @@ def send_message(service, user_id, message):
     except Exception as e:
         print('An error occurred: %s' % e)
         return None
-def send_email(service, user_id, subject, recipient, template_path, template_data=None):
+    
+def send_email(service, user_id, subject, recipient, html_content):
     try:
-        with open(template_path, 'r') as file:
-            html_content = file.read()
-        # Replace placeholders with actual data
-        if template_data:
-            html_content = html_content.format(**template_data)
+        # Create a MIMEMultipart message
         message = MIMEMultipart('alternative')
         message['to'] = recipient
         message['from'] = user_id
         message['subject'] = subject
+
+        # Attach both plain text and HTML parts
         part1 = MIMEText("This is an HTML email. Please use an email client that supports HTML to view it.", 'plain')
         part2 = MIMEText(html_content, 'html')
         message.attach(part1)
         message.attach(part2)
+
+        # Encode and send the message
         raw_message = {'raw': base64.urlsafe_b64encode(message.as_bytes()).decode()}
         sent_message = service.users().messages().send(userId=user_id, body=raw_message).execute()
         return sent_message
+
     except Exception as e:
         print('An error occurred: %s' % e)
         return None
+
+    
 # Flask Routes
 @app.route('/')
 def index():
@@ -206,15 +210,23 @@ def stripe_webhook():
                 # Read HTML content from file
                 with open(template_path, 'r') as file:
                     html_content = file.read()
+                
+                # Escape curly braces not used for placeholders
+                html_content = html_content.replace('{', '{{').replace('}', '}}')
 
-                for recipient in recipients:
-                    template_data = {'name': 'Duncan',
-                                     'price': '100',
-                                     'hyperlink': '',
-                                     }  
-                    send_email(service, "me", subject, recipient, template_path, template_data)
+                # Unescape the actual placeholders
+                html_content = html_content.replace('{{name}}', '{name}')
 
-                    send_email(service, "me", subject, recipient, template_path)
+                template_data = {
+                    'name': 'John Doe',
+                    }
+                
+                html_content = html_content.format(**template_data)
+                html_content = html_content.replace('{{', '{').replace('}}', '}')
+
+            for recipient in recipients:
+                # No need to pass template_path here
+                send_email(service, "me", subject, recipient, html_content)
 
         return jsonify({'status': 'success'}), 200
 
