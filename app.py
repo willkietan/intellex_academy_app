@@ -268,7 +268,7 @@ def stripe_webhook():
                 'price': '100', 
                 'hyperlink': 'https://www.example.com'
                 }
-            send_email(service, "me", subject, recipient, template_path, template_data)
+            send_email(service, "me", subject, recipient, template_path, template_data=None)
 
         return jsonify({'status': 'success'}), 200
 
