@@ -115,11 +115,11 @@ def send_email(service, user_id, subject, recipient, template_path, template_dat
         # Send the email
         raw_message = {'raw': base64.urlsafe_b64encode(message.as_bytes()).decode()}
         sent_message = service.users().messages().send(userId=user_id, body=raw_message).execute()
-        logging.info(f'Email sent successfully: Message Id {sent_message["id"]}')
+        print(f'Email sent successfully: Message Id {sent_message["id"]}')
         return sent_message
 
     except Exception as e:
-        logging.error(f'An error occurred while sending email: {e}')
+        print(f'An error occurred while sending email: {e}')
         raise  # Re-raise the exception for handling in calling function
 
 
