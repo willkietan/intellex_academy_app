@@ -217,10 +217,10 @@ def stripe_webhook():
                 html_content = html_content.replace('{{mentor_name}}', '{mentor_name}')
 
                 template_data = {
-                    'user_name': str(user_name),  # From session metadata
-                    'price': str(amount),  # From session metadata
-                    'hyperlink': str(calendar_link),  # Google Calendar event link
-                    'mentor_name': str(mentor_name)  # Google Calendar event link
+                    'user_name': 'John Doe',  # From session metadata
+                    'price': 'John Doe',  # From session metadata
+                    'hyperlink': 'John Doe',  # Google Calendar event link
+                    'mentor_name': 'John Doe'  # Google Calendar event link
                     }
                 
                 html_content = html_content.format(**template_data)
