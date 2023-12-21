@@ -89,28 +89,29 @@ def send_message(service, user_id, message):
         print('An error occurred: %s' % e)
         return None
 
-def send_email(service, user_id, subject, recipient, html_content):
+def send_email(service, user_id, subject, recipient, template_path, template_data=None):
     try:
-        # Create a MIMEMultipart message
+        with open(template_path, 'r') as file:
+            html_content = file.read()
+
+        # Replace placeholders with actual data
+        if template_data:
+            html_content = html_content.format(**template_data)
+
         message = MIMEMultipart('alternative')
         message['to'] = recipient
         message['from'] = user_id
         message['subject'] = subject
 
-        # Create the plain-text version of the message
-        text = "This is an HTML email. Please use an email client that supports HTML to view it."
-        part1 = MIMEText(text, 'plain')
+        part1 = MIMEText("This is an HTML email. Please use an email client that supports HTML to view it.", 'plain')
         part2 = MIMEText(html_content, 'html')
 
-        # Attach parts into message container
         message.attach(part1)
         message.attach(part2)
 
-        # Encode and send the message
         raw_message = {'raw': base64.urlsafe_b64encode(message.as_bytes()).decode()}
         sent_message = service.users().messages().send(userId=user_id, body=raw_message).execute()
 
-        print('Message Id: %s' % sent_message['id'])
         return sent_message
     except Exception as e:
         print('An error occurred: %s' % e)
@@ -255,21 +256,13 @@ def stripe_webhook():
                     html_content = file.read()
 
                 for recipient in recipients:
-                    # Use the updated send_email function
-                    send_email(service, "me", subject, recipient, html_content)
-
+                    template_data = {'name': 'Duncan',
+                                     'price': '100',
+                                     'hyperlink': '',
+                                     }  
+                    send_email(service, "me", subject, recipient, template_path, template_data)
 
         return jsonify({'status': 'success'}), 200
-
-    except ValueError as e:
-        # Invalid payload
-        return 'Invalid payload', 400
-    except stripe.error.SignatureVerificationError as e:
-        # Invalid signature
-        return 'Invalid signature', 400
-    except Exception as e:
-        return str(e), 500
-
 
     except ValueError as e:
         # Invalid payload
