@@ -216,9 +216,16 @@ def stripe_webhook():
 
                 # Unescape the actual placeholders
                 html_content = html_content.replace('{{name}}', '{name}')
+                html_content = html_content.replace('{{price}}', '{price}')
+                html_content = html_content.replace('{{hyperlink}}', '{hyperlink}')
+
+                # Replace placeholders with actual data
+                html_content = html_content.format(**template_data)
 
                 template_data = {
                     'name': 'John Doe',
+                    'price': '100',
+                    'hyperlink': 'https://www.google.com/'
                     }
                 
                 html_content = html_content.format(**template_data)
