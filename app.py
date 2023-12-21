@@ -181,6 +181,7 @@ def stripe_webhook():
 
             amount = session.get('metadata', {}).get('amount', '')
             user_name = session.get('metadata', {}).get('user_name', '')
+            mentor_name = session.get('metadata', {}).get('mentor_name', '')
 
             # Step 1: Create Calendar Event
             create_event_data = {
@@ -213,11 +214,13 @@ def stripe_webhook():
                 html_content = html_content.replace('{{name}}', '{user_name}')
                 html_content = html_content.replace('{{price}}', '{amount}')
                 html_content = html_content.replace('{{hyperlink}}', '{hyperlink}')
+                html_content = html_content.replace('{{mentor_name}}', '{mentor_name}')
 
                 template_data = {
                     'user_name': user_name,  # From session metadata
                     'price': amount,  # From session metadata
-                    'hyperlink': calendar_link  # Google Calendar event link
+                    'hyperlink': calendar_link,  # Google Calendar event link
+                    'mentor_name': mentor_name  # Google Calendar event link
                     }
                 
                 html_content = html_content.format(**template_data)
