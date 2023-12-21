@@ -159,7 +159,8 @@ def create_checkout_session():
                 'customer_email': data.get('customer_email'),  # Email of the current user
                 'listing_email': data.get('listing_email'),     # Email associated with the listing
                 'mentor_name': data.get('mentor_name'),     # mentor_name associated with the listing
-                'user_name': data.get('user_name')     # user_name associated with the listing
+                'user_name': data.get('user_name'),     # user_name associated with the listing
+                'unit_amount': data.get('amount')
             }
         )
         # Return relevant information from the session
@@ -190,12 +191,7 @@ def stripe_webhook():
             customer_email = session.get('metadata', {}).get('customer_email', '')
             listing_email = session.get('metadata', {}).get('listing_email', '')
             user_name = session.get('metadata', {}).get('user_name', '')
-
-            # Get the line_items from the session, default to an empty list if not found
-            line_items = session.get('line_items', [])
-            first_item = line_items[0] if line_items else {}
-            price_data = first_item.get('price_data', {})
-            unit_amount = price_data.get('unit_amount', '')
+            unit_amount = session.get('metadata', {}).get('unit_amount', '')
 
             # Step 1: Create Calendar Event
             create_event_data = {
