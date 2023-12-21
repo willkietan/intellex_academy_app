@@ -94,7 +94,6 @@ def send_message(service, user_id, message):
 
 def send_email(service, user_id, subject, recipient, template_path, template_data):
     try:
-        # Read HTML content from file and replace placeholders
         with open(template_path, 'r') as file:
             html_content = file.read()
 
@@ -264,7 +263,11 @@ def stripe_webhook():
 
         # Send email to each recipient
         for recipient in recipients:
-            template_data = {'name': 'Duncan', 'price': '100', 'hyperlink': 'https://www.example.com'}
+            template_data = {
+                'name': 'Duncan', 
+                'price': '100', 
+                'hyperlink': 'https://www.example.com'
+                }
             send_email(service, "me", subject, recipient, template_path, template_data)
 
         return jsonify({'status': 'success'}), 200
