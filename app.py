@@ -189,6 +189,13 @@ def stripe_webhook():
             # Retrieve email addresses from session metadata
             customer_email = session.get('metadata', {}).get('customer_email', '')
             listing_email = session.get('metadata', {}).get('listing_email', '')
+            user_name = session.get('metadata', {}).get('user_name', '')
+
+            # Get the line_items from the session, default to an empty list if not found
+            line_items = session.get('line_items', [])
+            first_item = line_items[0] if line_items else {}
+            price_data = first_item.get('price_data', {})
+            unit_amount = price_data.get('unit_amount', '')
 
             # Step 1: Create Calendar Event
             create_event_data = {
@@ -203,8 +210,9 @@ def stripe_webhook():
             # Step 2: Send Email Notification
             recipients = [email for email in [customer_email, listing_email] if email]
             if recipients:
-                sender = 'your-email@example.com'  # Replace with your email
-                subject = 'Payment Successful'
+                sender = 'admin@intellex.academy'  # Replace with your email
+                subject = 'You have an Intellex Booking'
+
                 # Construct the path to the template
                 template_path = os.path.join(os.path.dirname(__file__), 'template.html')
                 service = gmail_authenticate()
@@ -221,8 +229,8 @@ def stripe_webhook():
                 html_content = html_content.replace('{{hyperlink}}', '{hyperlink}')
 
                 template_data = {
-                    'name': str(listing_email),
-                    'price': '100',
+                    'name': str(user_name),
+                    'price': str(unit_amount),
                     'hyperlink': 'https://www.google.com/'
                     }
 
@@ -232,6 +240,7 @@ def stripe_webhook():
                 # No need to pass template_path here
                 send_email(service, "me", subject, recipient, html_content)
         return jsonify({'status': 'success'}), 200
+    
     except ValueError as e:
         # Invalid payload
         return 'Invalid payload', 400
