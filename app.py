@@ -11,6 +11,7 @@ import os
 import json
 from flask_cors import CORS
 import stripe
+
 app = Flask(__name__)
 # Enable CORS for all routes and origins
 CORS(app)
@@ -98,6 +99,7 @@ def send_email(service, user_id, subject, recipient, html_content):
 @app.route('/')
 def index():
     return "Welcome to the Google Calendar and Gmail Integration!"
+
 @app.route('/create_event', methods=['POST'])
 def create_calendar_event():
     data = request.json
@@ -112,6 +114,7 @@ def create_calendar_event():
         return jsonify({'message': 'Event created successfully', 'event_link': event.get('htmlLink'), 'meet_link': event.get('hangoutLink')})
     except Exception as e:
         return jsonify({'error': str(e)}), 500
+    
 @app.route('/send_email', methods=['POST'])
 def handle_send_email():
     data = request.json
@@ -134,7 +137,9 @@ def handle_send_email():
         return jsonify({'error': str(e)}), 500
 # Set your secret key. Remember to switch to your live secret key in production.
 # See your keys here: https://dashboard.stripe.com/account/apikeys
+    
 stripe.api_key = os.getenv('STRIPE_SECRET_KEY')
+
 @app.route('/create-checkout-session', methods=['POST'])
 def create_checkout_session():
     try:
@@ -201,7 +206,7 @@ def stripe_webhook():
 
             event_link = create_event(create_event_data['start_time'], create_event_data['end_time'], 
                          create_event_data['summary'], create_event_data['description'])
-            calendar_link = event_link.get('htmlLink')
+            calendar_link = event_link.get('hangoutLink')
 
             # Step 2: Send Email Notification
             recipients = [email for email in [customer_email, listing_email] if email]
