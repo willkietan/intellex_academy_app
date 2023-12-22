@@ -212,7 +212,8 @@ def stripe_webhook():
 
             event_data = create_event(create_event_data['start_time'], create_event_data['end_time'], 
                      create_event_data['summary'], create_event_data['description'])
-            calendar_link = event_data.get('hangoutLink')
+            calendar_link = event_data.get('htmlLink')
+            print(calendar_link)
 
             # Step 2: Send Email Notification
             recipients = [email for email in [customer_email, listing_email] if email]
