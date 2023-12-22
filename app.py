@@ -157,8 +157,8 @@ def create_checkout_session():
                 'quantity': 1,
             }],
             mode='payment',
-            success_url='https://intellex-academy.vercel.app/success?session_id={CHECKOUT_SESSION_ID}',
-            cancel_url='https://intellex-academy.vercel.app/cancel',
+            success_url='https://intellex-academy.vercel.app/success',
+            cancel_url='https://intellex-academy.vercel.app/',
             metadata={
                 'customer_email': data.get('customer_email'),  # Email of the current user
                 'listing_email': data.get('listing_email'),     # Email associated with the listing
