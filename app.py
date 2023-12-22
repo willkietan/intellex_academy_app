@@ -196,6 +196,7 @@ def stripe_webhook():
             listing_email = session.get('metadata', {}).get('listing_email', '')
             user_name = session.get('metadata', {}).get('user_name', '')
             unit_amount = session.get('metadata', {}).get('unit_amount', '')
+            unit_amount = int(unit_amount) / 100
             # Step 1: Create Calendar Event
             create_event_data = {
                 'start_time': '2024-01-01T09:00:00', # Replace with actual data
