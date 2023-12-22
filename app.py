@@ -182,72 +182,78 @@ def create_checkout_session():
 def stripe_webhook():
     payload = request.get_data(as_text=True)
     sig_header = request.headers.get('Stripe-Signature')
-    # Your webhook secret (replace with your actual webhook secret)
     webhook_secret = os.getenv('STRIPE_SECRET_WEBHOOK')
+
     try:
         event = stripe.Webhook.construct_event(
             payload, sig_header, webhook_secret
         )
-        # Handle the event
-        if event['type'] == 'checkout.session.completed':
-            session = event['data']['object']
-            # Retrieve email addresses from session metadata
-            customer_email = session.get('metadata', {}).get('customer_email', '')
-            listing_email = session.get('metadata', {}).get('listing_email', '')
-            user_name = session.get('metadata', {}).get('user_name', '')
-            unit_amount = session.get('metadata', {}).get('unit_amount', '')
-            unit_amount = int(unit_amount) / 100
-            # Step 1: Create Calendar Event
-            create_event_data = {
-                'start_time': '2024-01-01T09:00:00', # Replace with actual data
-                'end_time': '2024-01-01T10:00:00',   # Replace with actual data
-                'summary': 'Payment Successful Event',
-                'description': 'This event is created upon a successful payment.'
-            }
-
-            event_link = create_event(create_event_data['start_time'], create_event_data['end_time'], 
-                         create_event_data['summary'], create_event_data['description'])
-            calendar_link = event_link.get('hangoutLink')
-
-            # Step 2: Send Email Notification
-            recipients = [email for email in [customer_email, listing_email] if email]
-            if recipients:
-                sender = 'admin@intellex.academy'  # Replace with your email
-                subject = 'You have an Intellex Booking'
-                # Construct the path to the template
-                template_path = os.path.join(os.path.dirname(__file__), 'template.html')
-                service = gmail_authenticate()
-                # Read HTML content from file
-                with open(template_path, 'r') as file:
-                    html_content = file.read()
-                
-                # Escape curly braces not used for placeholders
-                html_content = html_content.replace('{', '{{').replace('}', '}}')
-                # Unescape the actual placeholders
-                html_content = html_content.replace('{{name}}', '{name}')
-                html_content = html_content.replace('{{price}}', '{price}')
-                html_content = html_content.replace('{{hyperlink}}', '{hyperlink}')
-                template_data = {
-                    'name': str(user_name),
-                    'price': str(unit_amount),
-                    'hyperlink': str(calendar_link)
-                    }
-
-                html_content = html_content.format(**template_data)
-                html_content = html_content.replace('{{', '{').replace('}}', '}')
-            for recipient in recipients:
-                # No need to pass template_path here
-                send_email(service, "me", subject, recipient, html_content)
-        return jsonify({'status': 'success'}), 200
-    
-    except ValueError as e:
+    except ValueError:
         # Invalid payload
         return 'Invalid payload', 400
-    except stripe.error.SignatureVerificationError as e:
+    except stripe.error.SignatureVerificationError:
         # Invalid signature
         return 'Invalid signature', 400
-    except Exception as e:
-        return str(e), 500
+
+    # If event type is 'checkout.session.completed', process it
+    if event['type'] == 'checkout.session.completed':
+        session = event['data']['object']
+
+        # Respond to Stripe immediately before processing
+        response = jsonify({'status': 'success'})
+        response.status_code = 200
+
+        # Asynchronous processing (email and event creation)
+        process_checkout_session(session)
+
+        return response
+
+    return 'Unhandled event type', 400
+
+def process_checkout_session(session):
+    # Extract session data
+    customer_email = session.get('metadata', {}).get('customer_email', '')
+    listing_email = session.get('metadata', {}).get('listing_email', '')
+    user_name = session.get('metadata', {}).get('user_name', '')
+    unit_amount = session.get('metadata', {}).get('unit_amount', '')
+    unit_amount = int(unit_amount) / 100
+
+    # Create Calendar Event
+    create_event_data = {
+        'start_time': '2024-01-01T09:00:00',
+        'end_time': '2024-01-01T10:00:00',
+        'summary': 'Payment Successful Event',
+        'description': 'This event is created upon a successful payment.'
+    }
+    event_link = create_event(create_event_data['start_time'], create_event_data['end_time'], 
+                              create_event_data['summary'], create_event_data['description'])
+    calendar_link = event_link.get('hangoutLink')
+
+    # Send Email Notification
+    recipients = [email for email in [customer_email, listing_email] if email]
+    if recipients:
+        sender = 'admin@intellex.academy'
+        subject = 'You have an Intellex Booking'
+        template_path = os.path.join(os.path.dirname(__file__), 'template.html')
+        service = gmail_authenticate()
+        with open(template_path, 'r') as file:
+            html_content = file.read()
+
+        html_content = html_content.replace('{', '{{').replace('}', '}}')
+        html_content = html_content.replace('{{name}}', '{name}')
+        html_content = html_content.replace('{{price}}', '{price}')
+        html_content = html_content.replace('{{hyperlink}}', '{hyperlink}')
+        template_data = {
+            'name': str(user_name),
+            'price': str(unit_amount),
+            'hyperlink': str(calendar_link)
+        }
+
+        html_content = html_content.format(**template_data)
+        html_content = html_content.replace('{{', '{').replace('}}', '}')
+
+        for recipient in recipients:
+            send_email(service, "me", subject, recipient, html_content)
     
 if __name__ == '__main__':
     port = int(os.environ.get('PORT', 5000))  # Default to 5000 if PORT not set
