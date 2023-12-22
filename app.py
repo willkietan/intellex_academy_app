@@ -12,13 +12,10 @@ import json
 from flask_cors import CORS
 import stripe
 app = Flask(__name__)
-
 # Enable CORS for all routes and origins
 CORS(app)
-
 # Google Calendar Functions
 SCOPES_CALENDAR = ['https://www.googleapis.com/auth/calendar.events']
-
 def get_calendar_service():
     creds_json = os.environ.get('GOOGLE_CREDENTIALS_1')
     if creds_json:
@@ -31,7 +28,6 @@ def get_calendar_service():
         raise ValueError("Missing Google Calendar credentials")
     service = build('calendar', 'v3', credentials=creds)
     return service
-
 def create_event(start_time_str, end_time_str, summary, description):
     service = get_calendar_service()
     start_time = datetime.datetime.fromisoformat(start_time_str)
@@ -49,10 +45,8 @@ def create_event(start_time_str, end_time_str, summary, description):
         conferenceDataVersion=1
     ).execute()
     return event_result
-
 # Gmail Functions
 SCOPES_GMAIL = ['https://www.googleapis.com/auth/gmail.send']
-
 def gmail_authenticate():
     creds_json = os.environ.get('GOOGLE_CREDENTIALS')
     if creds_json:
@@ -64,14 +58,12 @@ def gmail_authenticate():
         # Handle the error, e.g., credentials not found
         raise ValueError("Missing Google Gmail credentials")
     return build('gmail', 'v1', credentials=creds)
-
 def create_message(sender, to, subject, message_text):
     message = MIMEText(message_text)
     message['to'] = to
     message['from'] = sender
     message['subject'] = subject
     return {'raw': base64.urlsafe_b64encode(message.as_bytes()).decode()}
-
 def send_message(service, user_id, message):
     try:
         message = (service.users().messages().send(userId=user_id, body=message)
@@ -120,7 +112,6 @@ def create_calendar_event():
         return jsonify({'message': 'Event created successfully', 'event_link': event.get('htmlLink'), 'meet_link': event.get('hangoutLink')})
     except Exception as e:
         return jsonify({'error': str(e)}), 500
-    
 @app.route('/send_email', methods=['POST'])
 def handle_send_email():
     data = request.json
@@ -144,7 +135,6 @@ def handle_send_email():
 # Set your secret key. Remember to switch to your live secret key in production.
 # See your keys here: https://dashboard.stripe.com/account/apikeys
 stripe.api_key = os.getenv('STRIPE_SECRET_KEY')
-
 @app.route('/create-checkout-session', methods=['POST'])
 def create_checkout_session():
     try:
@@ -201,7 +191,6 @@ def stripe_webhook():
             listing_email = session.get('metadata', {}).get('listing_email', '')
             user_name = session.get('metadata', {}).get('user_name', '')
             unit_amount = session.get('metadata', {}).get('unit_amount', '')
-            unit_amount = unit_amount/100
             # Step 1: Create Calendar Event
             create_event_data = {
                 'start_time': '2024-01-01T09:00:00', # Replace with actual data
@@ -210,10 +199,9 @@ def stripe_webhook():
                 'description': 'This event is created upon a successful payment.'
             }
 
-            event_data = create_event(create_event_data['start_time'], create_event_data['end_time'], 
-                     create_event_data['summary'], create_event_data['description'])
-            calendar_link = event_data.get('htmlLink')
-            print(calendar_link)
+            event_link = create_event(create_event_data['start_time'], create_event_data['end_time'], 
+                         create_event_data['summary'], create_event_data['description'])
+            calendar_link = event_link.get('htmlLink')
 
             # Step 2: Send Email Notification
             recipients = [email for email in [customer_email, listing_email] if email]
