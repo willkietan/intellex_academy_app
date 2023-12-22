@@ -16,6 +16,7 @@ app = Flask(__name__)
 CORS(app)
 # Google Calendar Functions
 SCOPES_CALENDAR = ['https://www.googleapis.com/auth/calendar.events']
+
 def get_calendar_service():
     creds_json = os.environ.get('GOOGLE_CREDENTIALS_1')
     if creds_json:
@@ -28,6 +29,7 @@ def get_calendar_service():
         raise ValueError("Missing Google Calendar credentials")
     service = build('calendar', 'v3', credentials=creds)
     return service
+
 def create_event(start_time_str, end_time_str, summary, description):
     service = get_calendar_service()
     start_time = datetime.datetime.fromisoformat(start_time_str)
@@ -45,6 +47,7 @@ def create_event(start_time_str, end_time_str, summary, description):
         conferenceDataVersion=1
     ).execute()
     return event_result
+
 # Gmail Functions
 SCOPES_GMAIL = ['https://www.googleapis.com/auth/gmail.send']
 def gmail_authenticate():
@@ -58,12 +61,14 @@ def gmail_authenticate():
         # Handle the error, e.g., credentials not found
         raise ValueError("Missing Google Gmail credentials")
     return build('gmail', 'v1', credentials=creds)
+
 def create_message(sender, to, subject, message_text):
     message = MIMEText(message_text)
     message['to'] = to
     message['from'] = sender
     message['subject'] = subject
     return {'raw': base64.urlsafe_b64encode(message.as_bytes()).decode()}
+
 def send_message(service, user_id, message):
     try:
         message = (service.users().messages().send(userId=user_id, body=message)
@@ -229,7 +234,7 @@ def stripe_webhook():
                 template_data = {
                     'name': str(user_name),
                     'price': str(unit_amount),
-                    'hyperlink': str(calendar_link)
+                    'hyperlink': str('hello')
                     }
 
                 html_content = html_content.format(**template_data)
